@@ -18,10 +18,8 @@ class UsageAccessibilityService : AccessibilityService() {
         if (event?.eventType == AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED) {
             val packageName = event.packageName?.toString() ?: return
 
-            // Check if app is blocked
             checkIfAppBlocked(packageName)
 
-            // Existing usage tracking code
             if (packageName != lastForegroundApp) {
                 val currentTime = System.currentTimeMillis()
 
@@ -38,7 +36,7 @@ class UsageAccessibilityService : AccessibilityService() {
     }
 
     override fun onInterrupt() {
-        Log.d("UsageAccessibilityService", "Service Interrupted")
+        Log.d("UsageService", "Service Interrupted")
     }
 
     private fun updateFirestore(packageName: String, duration: Long) {
@@ -46,7 +44,6 @@ class UsageAccessibilityService : AccessibilityService() {
 
         appRef.get().addOnSuccessListener { document ->
             if (document.exists()) {
-                // If the app exists, update total time
                 val currentTimeUsed = document.getLong("totalTimeUsed") ?: 0
                 val newTotalTime = currentTimeUsed + duration
 

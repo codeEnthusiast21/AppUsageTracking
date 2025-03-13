@@ -2,7 +2,6 @@ package com.example.otherapptimedetection
 
 import android.content.Intent
 import android.content.pm.ApplicationInfo
-import android.content.pm.PackageManager
 import android.os.Bundle
 import android.provider.Settings
 import android.widget.ArrayAdapter
@@ -17,34 +16,34 @@ import com.google.firebase.firestore.FirebaseFirestore
 class MainActivity : AppCompatActivity() {
     private lateinit var binding: ActivityMainBinding
     private val db = FirebaseFirestore.getInstance()
-    private lateinit var installedApps: List<AppInfo>
+    private lateinit var allApps: List<AppInfo>
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         binding = ActivityMainBinding.inflate(layoutInflater)
         setContentView(binding.root)
 
-        setupAccessibilityButton()
-        setupAppSpinner()
+        setupPermissionButton()
+        setupSpinner()
         setupBlockButton()
-        loadBlockedApps()
-        loadUsageData()
+        loadBlockdAppps()
+        loadTimeData()
     }
 
-    private fun setupAccessibilityButton() {
-        binding.startTrackingButton.setOnClickListener {
-            if (!isAccessibilityServiceEnabled()) {
+    private fun setupPermissionButton() {
+        binding.permissionForTracking.setOnClickListener {
+            if (!isPermission()) {
                 requestAccessibilityPermission()
             } else {
                 Toast.makeText(this, "Tracking already started", Toast.LENGTH_SHORT).show()
-                updateButtonState()
+                updateBtnUI()
             }
         }
     }
 
-    private fun setupAppSpinner() {
-        installedApps = getInstalledApps()
-        if (installedApps.isEmpty()) {
+    private fun setupSpinner() {
+        allApps = getInstalledApps()
+        if (allApps.isEmpty()) {
             Toast.makeText(this, "No apps found", Toast.LENGTH_SHORT).show()
             return
         }
@@ -52,17 +51,17 @@ class MainActivity : AppCompatActivity() {
         val adapter = ArrayAdapter(
             this,
             android.R.layout.simple_spinner_item,
-            installedApps.map { it.appName }
+            allApps.map { it.appName }
         ).apply {
             setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item)
         }
 
-        binding.appSpinner.adapter = adapter
+        binding.spinner.adapter = adapter
     }
     private fun setupBlockButton() {
-        binding.blockAppButton.setOnClickListener {
-            val selectedPosition = binding.appSpinner.selectedItemPosition
-            val selectedApp = installedApps[selectedPosition]
+        binding.blockApp.setOnClickListener {
+            val selectedPosition = binding.spinner.selectedItemPosition
+            val selectedApp = allApps[selectedPosition]
             blockApp(selectedApp)
         }
     }
@@ -79,29 +78,27 @@ class MainActivity : AppCompatActivity() {
             .set(blockedApp)
             .addOnSuccessListener {
                 Toast.makeText(this, "${appInfo.appName} blocked", Toast.LENGTH_SHORT).show()
-                loadBlockedApps()
+                loadBlockdAppps()
             }
             .addOnFailureListener { e ->
                 Toast.makeText(this, "Error: ${e.message}", Toast.LENGTH_SHORT).show()
             }
     }
 
-    private fun loadBlockedApps() {
-        binding.blockedAppsLayout.removeAllViews()
+    private fun loadBlockdAppps() {
+        binding.forBlockedApps.removeAllViews()
         db.collection("blocked_apps")
             .get()
             .addOnSuccessListener { result ->
                 if (result.isEmpty) {
-                    // Add a message when no apps are blocked
                     val textView = TextView(this).apply {
                         text = "No apps blocked"
                         textSize = 16f
                         setPadding(20, 20, 20, 20)
-                        alpha = 0.6f  // slightly dimmed text
+                        alpha = 0.6f
                     }
-                    binding.blockedAppsLayout.addView(textView)
+                    binding.forBlockedApps.addView(textView)
                 } else {
-                    // Show blocked apps
                     for (document in result) {
                         val appName = document.getString("appName") ?: ""
                         val packageName = document.getString("packageName") ?: ""
@@ -118,10 +115,10 @@ class MainActivity : AppCompatActivity() {
     private fun addBlockedAppView(appName: String, packageName: String) {
         val view = layoutInflater.inflate(R.layout.blocked_app_item, null)
         view.findViewById<TextView>(R.id.blockedAppName).text = appName
-        view.findViewById<Button>(R.id.unblockButton).setOnClickListener {  // Changed TextView to Button
+        view.findViewById<Button>(R.id.unblockButton).setOnClickListener {
             unblockApp(packageName, appName)
         }
-        binding.blockedAppsLayout.addView(view)
+        binding.forBlockedApps.addView(view)
     }
 
     private fun unblockApp(packageName: String, appName: String) {
@@ -130,18 +127,18 @@ class MainActivity : AppCompatActivity() {
             .delete()
             .addOnSuccessListener {
                 Toast.makeText(this, "$appName unblocked", Toast.LENGTH_SHORT).show()
-                loadBlockedApps()
+                loadBlockdAppps()
             }
             .addOnFailureListener { e ->
                 Toast.makeText(this, "Error unblocking: ${e.message}", Toast.LENGTH_SHORT).show()
             }
     }
 
-    private fun loadUsageData() {
+    private fun loadTimeData() {
         db.collection("app_usage")
             .get()
             .addOnSuccessListener { result ->
-                binding.appUsageLayout.removeAllViews()
+                binding.forTimeUsage.removeAllViews()
                 for (document in result) {
                     val packageName = document.id
                     val usageTime = document.getLong("totalTimeUsed") ?: 0
@@ -158,7 +155,7 @@ class MainActivity : AppCompatActivity() {
                         setPadding(20, 20, 20, 20)
                     }
 
-                    binding.appUsageLayout.addView(textView)
+                    binding.forTimeUsage.addView(textView)
                 }
             }
             .addOnFailureListener { exception ->
@@ -179,9 +176,7 @@ class MainActivity : AppCompatActivity() {
                 )
             }
             .filter {
-                // Filter out your own app
                 it.packageName != packageName &&
-                        // Filter out system apps (optional)
                         !isSystemApp(it.packageName)
             }
             .sortedBy { it.appName }
@@ -205,7 +200,7 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    private fun isAccessibilityServiceEnabled(): Boolean {
+    private fun isPermission(): Boolean {
         val enabledServices = Settings.Secure.getString(
             contentResolver,
             Settings.Secure.ENABLED_ACCESSIBILITY_SERVICES
@@ -223,21 +218,21 @@ class MainActivity : AppCompatActivity() {
         startActivity(Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS))
     }
 
-    private fun updateButtonState() {
-        if (isAccessibilityServiceEnabled()) {
-            binding.startTrackingButton.text = "Already started"
-            binding.startTrackingButton.isEnabled = false
+    private fun updateBtnUI() {
+        if (isPermission()) {
+            binding.permissionForTracking.text = "Already started"
+            binding.permissionForTracking.isEnabled = false
         } else {
-            binding.startTrackingButton.text = "Start Tracking"
-            binding.startTrackingButton.isEnabled = true
+            binding.permissionForTracking.text = "Start Tracking"
+            binding.permissionForTracking.isEnabled = true
         }
     }
 
     override fun onResume() {
         super.onResume()
-        updateButtonState()
-        loadBlockedApps()
-        loadUsageData()
+        updateBtnUI()
+        loadBlockdAppps()
+        loadTimeData()
     }
 }
 
