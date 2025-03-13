@@ -16,7 +16,7 @@ class UsageTrackerService : Service() {
 
     private val db = FirebaseFirestore.getInstance()
     private val handler = Handler(Looper.getMainLooper())
-    private val checkInterval = 5000L
+    private val checkInterval = 1000L
     private var lastForegroundApp = ""
     private var lastTimeStamp: Long = 0
 

@@ -1,76 +1,147 @@
 package com.example.otherapptimedetection
 
-import android.app.AppOpsManager
-import android.content.Context
 import android.content.Intent
+import android.content.pm.ApplicationInfo
+import android.content.pm.PackageManager
 import android.os.Bundle
-import android.os.Process
 import android.provider.Settings
+import android.widget.ArrayAdapter
+import android.widget.Button
+import android.widget.TextView
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
-import com.example.otherapptimedetection.service.UsageTrackerService
-import com.google.firebase.firestore.FirebaseFirestore
-import android.widget.LinearLayout
-import android.widget.TextView
 import com.example.otherapptimedetection.databinding.ActivityMainBinding
+import com.example.otherapptimedetection.service.UsageAccessibilityService
+import com.google.firebase.firestore.FirebaseFirestore
 
 class MainActivity : AppCompatActivity() {
     private lateinit var binding: ActivityMainBinding
-    private lateinit var appUsageLayout: LinearLayout
     private val db = FirebaseFirestore.getInstance()
+    private lateinit var installedApps: List<AppInfo>
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         binding = ActivityMainBinding.inflate(layoutInflater)
         setContentView(binding.root)
 
-        appUsageLayout = findViewById(R.id.appUsageLayout)
+        setupAccessibilityButton()
+        setupAppSpinner()
+        setupBlockButton()
+        loadBlockedApps()
+        loadUsageData()
+    }
 
-        // checking permission
-
+    private fun setupAccessibilityButton() {
         binding.startTrackingButton.setOnClickListener {
-            if (!requiredPermission()) {
-                requestPermission()
+            if (!isAccessibilityServiceEnabled()) {
+                requestAccessibilityPermission()
             } else {
-                startTracking()
-                binding.startTrackingButton.text= "Already started"
-                binding.startTrackingButton.isEnabled = false
+                Toast.makeText(this, "Tracking already started", Toast.LENGTH_SHORT).show()
+                updateButtonState()
             }
         }
-
-        // loading data from firestore
-        loadData()
     }
 
-    private fun requiredPermission(): Boolean {
-        val appOps = getSystemService(Context.APP_OPS_SERVICE) as AppOpsManager
-        val mode = appOps.checkOpNoThrow(
-            AppOpsManager.OPSTR_GET_USAGE_STATS,
-            Process.myUid(), packageName
-        )
-        return mode == AppOpsManager.MODE_ALLOWED
-    }
+    private fun setupAppSpinner() {
+        installedApps = getInstalledApps()
+        if (installedApps.isEmpty()) {
+            Toast.makeText(this, "No apps found", Toast.LENGTH_SHORT).show()
+            return
+        }
 
-    private fun requestPermission() {
-        Toast.makeText(
+        val adapter = ArrayAdapter(
             this,
-            "Please grant usage access permission to track app usage",
-            Toast.LENGTH_LONG
-        ).show()
-        startActivity(Intent(Settings.ACTION_USAGE_ACCESS_SETTINGS))
+            android.R.layout.simple_spinner_item,
+            installedApps.map { it.appName }
+        ).apply {
+            setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item)
+        }
+
+        binding.appSpinner.adapter = adapter
+    }
+    private fun setupBlockButton() {
+        binding.blockAppButton.setOnClickListener {
+            val selectedPosition = binding.appSpinner.selectedItemPosition
+            val selectedApp = installedApps[selectedPosition]
+            blockApp(selectedApp)
+        }
     }
 
-    private fun startTracking() {
-        val serviceIntent = Intent(this, UsageTrackerService::class.java)
-        startService(serviceIntent)
-        Toast.makeText(this, "Usage tracking started", Toast.LENGTH_SHORT).show()
+    private fun blockApp(appInfo: AppInfo) {
+        val blockedApp = hashMapOf(
+            "packageName" to appInfo.packageName,
+            "appName" to appInfo.appName,
+            "blockedAt" to System.currentTimeMillis()
+        )
+
+        db.collection("blocked_apps")
+            .document(appInfo.packageName)
+            .set(blockedApp)
+            .addOnSuccessListener {
+                Toast.makeText(this, "${appInfo.appName} blocked", Toast.LENGTH_SHORT).show()
+                loadBlockedApps()
+            }
+            .addOnFailureListener { e ->
+                Toast.makeText(this, "Error: ${e.message}", Toast.LENGTH_SHORT).show()
+            }
     }
 
-    private fun loadData() {
+    private fun loadBlockedApps() {
+        binding.blockedAppsLayout.removeAllViews()
+        db.collection("blocked_apps")
+            .get()
+            .addOnSuccessListener { result ->
+                if (result.isEmpty) {
+                    // Add a message when no apps are blocked
+                    val textView = TextView(this).apply {
+                        text = "No apps blocked"
+                        textSize = 16f
+                        setPadding(20, 20, 20, 20)
+                        alpha = 0.6f  // slightly dimmed text
+                    }
+                    binding.blockedAppsLayout.addView(textView)
+                } else {
+                    // Show blocked apps
+                    for (document in result) {
+                        val appName = document.getString("appName") ?: ""
+                        val packageName = document.getString("packageName") ?: ""
+                        if (appName.isNotEmpty() && packageName.isNotEmpty()) {
+                            addBlockedAppView(appName, packageName)
+                        }
+                    }
+                }
+            }
+            .addOnFailureListener { e ->
+                Toast.makeText(this, "Error loading blocked apps: ${e.message}", Toast.LENGTH_SHORT).show()
+            }
+    }
+    private fun addBlockedAppView(appName: String, packageName: String) {
+        val view = layoutInflater.inflate(R.layout.blocked_app_item, null)
+        view.findViewById<TextView>(R.id.blockedAppName).text = appName
+        view.findViewById<Button>(R.id.unblockButton).setOnClickListener {  // Changed TextView to Button
+            unblockApp(packageName, appName)
+        }
+        binding.blockedAppsLayout.addView(view)
+    }
+
+    private fun unblockApp(packageName: String, appName: String) {
+        db.collection("blocked_apps")
+            .document(packageName)
+            .delete()
+            .addOnSuccessListener {
+                Toast.makeText(this, "$appName unblocked", Toast.LENGTH_SHORT).show()
+                loadBlockedApps()
+            }
+            .addOnFailureListener { e ->
+                Toast.makeText(this, "Error unblocking: ${e.message}", Toast.LENGTH_SHORT).show()
+            }
+    }
+
+    private fun loadUsageData() {
         db.collection("app_usage")
             .get()
             .addOnSuccessListener { result ->
-                appUsageLayout.removeAllViews()
+                binding.appUsageLayout.removeAllViews()
                 for (document in result) {
                     val packageName = document.id
                     val usageTime = document.getLong("totalTimeUsed") ?: 0
@@ -87,7 +158,7 @@ class MainActivity : AppCompatActivity() {
                         setPadding(20, 20, 20, 20)
                     }
 
-                    appUsageLayout.addView(textView)
+                    binding.appUsageLayout.addView(textView)
                 }
             }
             .addOnFailureListener { exception ->
@@ -95,18 +166,82 @@ class MainActivity : AppCompatActivity() {
             }
     }
 
+    private fun getInstalledApps(): List<AppInfo> {
+        val packageManager = packageManager
+        val intent = Intent(Intent.ACTION_MAIN, null)
+        intent.addCategory(Intent.CATEGORY_LAUNCHER)
+
+        return packageManager.queryIntentActivities(intent, 0)
+            .map { resolveInfo ->
+                AppInfo(
+                    resolveInfo.activityInfo.packageName,
+                    resolveInfo.loadLabel(packageManager).toString()
+                )
+            }
+            .filter {
+                // Filter out your own app
+                it.packageName != packageName &&
+                        // Filter out system apps (optional)
+                        !isSystemApp(it.packageName)
+            }
+            .sortedBy { it.appName }
+    }
+    private fun isSystemApp(packageName: String): Boolean {
+        return try {
+            val applicationInfo = packageManager.getApplicationInfo(packageName, 0)
+            (applicationInfo.flags and (ApplicationInfo.FLAG_SYSTEM or ApplicationInfo.FLAG_UPDATED_SYSTEM_APP)) != 0
+        } catch (e: Exception) {
+            false
+        }
+    }
+
     private fun getAppName(packageName: String): String {
-        try {
+        return try {
             val packageManager = applicationContext.packageManager
             val appInfo = packageManager.getApplicationInfo(packageName, 0)
-            return packageManager.getApplicationLabel(appInfo).toString()
+            packageManager.getApplicationLabel(appInfo).toString()
         } catch (e: Exception) {
-            return packageName
+            packageName
+        }
+    }
+
+    private fun isAccessibilityServiceEnabled(): Boolean {
+        val enabledServices = Settings.Secure.getString(
+            contentResolver,
+            Settings.Secure.ENABLED_ACCESSIBILITY_SERVICES
+        )
+        val serviceName = "${packageName}/${UsageAccessibilityService::class.java.canonicalName}"
+        return enabledServices?.contains(serviceName) == true
+    }
+
+    private fun requestAccessibilityPermission() {
+        Toast.makeText(
+            this,
+            "Please enable Accessibility Service to track app usage",
+            Toast.LENGTH_LONG
+        ).show()
+        startActivity(Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS))
+    }
+
+    private fun updateButtonState() {
+        if (isAccessibilityServiceEnabled()) {
+            binding.startTrackingButton.text = "Already started"
+            binding.startTrackingButton.isEnabled = false
+        } else {
+            binding.startTrackingButton.text = "Start Tracking"
+            binding.startTrackingButton.isEnabled = true
         }
     }
 
     override fun onResume() {
         super.onResume()
-        loadData()
+        updateButtonState()
+        loadBlockedApps()
+        loadUsageData()
     }
 }
+
+data class AppInfo(
+    val packageName: String,
+    val appName: String
+)
