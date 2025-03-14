@@ -26,6 +26,9 @@
             </intent-filter>
         </activity>
 
+        <activity android:name=".TimedBlockingActivity"
+            android:exported="false"/>
+
         <service
             android:name=".service.UsageAccessibilityService"
             android:permission="android.permission.BIND_ACCESSIBILITY_SERVICE"

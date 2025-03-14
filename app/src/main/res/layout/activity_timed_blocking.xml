@@ -10,47 +10,44 @@
         android:layout_height="wrap_content"
         android:orientation="vertical"
         android:padding="16dp"
-        tools:context=".MainActivity">
+        tools:context=".TimedBlockingActivity">
 
         <TextView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="Other App Time Tracker &amp; Blocker"
+            android:text="App Blocker"
             android:textSize="24sp"
             android:textStyle="bold"
             android:gravity="center"
             android:layout_marginBottom="16dp" />
 
-        <Button
-            android:id="@+id/permissionForTracking"
+        <Spinner
+            android:id="@+id/spinner"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="Start Tracking"
-            android:layout_marginBottom="16dp" />
-
+            android:layout_marginBottom="8dp" />
 
         <Button
             android:id="@+id/blockApp"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:text="Block App"
-            android:layout_gravity="center"
             android:layout_marginBottom="16dp" />
-
 
         <TextView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="App Time Usage :"
+            android:text="Blocked Apps : "
             android:textSize="18sp"
             android:textStyle="bold"
             android:layout_marginBottom="8dp" />
 
         <LinearLayout
-            android:id="@+id/forTimeUsage"
+            android:id="@+id/forBlockedApps"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:orientation="vertical" />
+            android:orientation="vertical"
+            android:layout_marginBottom="16dp" />
 
     </LinearLayout>
 </ScrollView>
