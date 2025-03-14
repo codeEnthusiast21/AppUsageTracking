@@ -1,155 +1,215 @@
 package com.example.otherapptimedetection
 
-
-import android.content.Intent
 import android.content.pm.ApplicationInfo
-
-
+import android.content.pm.PackageManager
 import android.os.Bundle
-import android.widget.ArrayAdapter
-import android.widget.Button
-import android.widget.TextView
+import android.os.CountDownTimer
 import android.widget.Toast
+import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import com.example.otherapptimedetection.databinding.ActivityTimedBlockingBinding
 import com.google.firebase.firestore.FirebaseFirestore
+import java.util.concurrent.TimeUnit
 
 class TimedBlockingActivity : AppCompatActivity() {
+
     private lateinit var binding: ActivityTimedBlockingBinding
-    private lateinit var allApps: List<AppInfo>
-    private val db = FirebaseFirestore.getInstance()
+    private lateinit var db: FirebaseFirestore
+    private lateinit var countDownTimer: CountDownTimer
 
-
+    private val selectedApps = mutableSetOf<AppInfo>()
+    private var isTimerRunning = false
+    private var timeLeftInMillis: Long = 0
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         binding = ActivityTimedBlockingBinding.inflate(layoutInflater)
         setContentView(binding.root)
 
-        setupSpinner()
-        setupBlockButton()
-        loadBlockdAppps()
-
-
+        db = FirebaseFirestore.getInstance()
+        initializeViews()
     }
 
-    override fun onResume() {
-        super.onResume()
-        loadBlockdAppps()
-    }
-    private fun setupSpinner() {
-        allApps = getInstalledApps()
-        if (allApps.isEmpty()) {
-            Toast.makeText(this, "No apps found", Toast.LENGTH_SHORT).show()
-            return
+    private fun initializeViews() {
+        // Initialize duration picker
+        binding.durationPicker.apply {
+            minValue = 1
+            maxValue = 120
+            value = 30
+            wrapSelectorWheel = false
         }
 
-        val adapter = ArrayAdapter(
-            this,
-            android.R.layout.simple_spinner_item,
-            allApps.map { it.appName }
-        ).apply {
-            setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item)
+        // Set up button click listeners
+        binding.selectAppsButton.setOnClickListener {
+            showAppSelectionDialog()
         }
 
-        binding.spinner.adapter = adapter
-    }
-    private fun setupBlockButton() {
-        binding.blockApp.setOnClickListener {
-            val selectedPosition = binding.spinner.selectedItemPosition
-            val selectedApp = allApps[selectedPosition]
-            blockApp(selectedApp)
+        binding.startButton.setOnClickListener {
+            if (selectedApps.isEmpty()) {
+                Toast.makeText(this, "Please select apps to block", Toast.LENGTH_SHORT).show()
+                return@setOnClickListener
+            }
+            val durationMinutes = binding.durationPicker.value
+            val durationMillis = TimeUnit.MINUTES.toMillis(durationMinutes.toLong())
+            startBlocking(durationMillis)
         }
     }
-    private fun loadBlockdAppps() {
-        binding.forBlockedApps.removeAllViews()
-        db.collection("blocked_apps")
-            .get()
-            .addOnSuccessListener { result ->
-                if (result.isEmpty) {
-                    val textView = TextView(this).apply {
-                        text = "No apps blocked"
-                        textSize = 16f
-                        setPadding(20, 20, 20, 20)
-                        alpha = 0.6f
-                    }
-                    binding.forBlockedApps.addView(textView)
+
+    private fun showAppSelectionDialog() {
+        val installedApps = getInstalledApps()
+        val appNames = installedApps.map { it.appName }.toTypedArray()
+        val checkedItems = BooleanArray(appNames.size) {
+            installedApps[it].packageName in selectedApps.map { app -> app.packageName }
+        }
+
+        AlertDialog.Builder(this)
+            .setTitle("Select Apps to Block")
+            .setMultiChoiceItems(appNames, checkedItems) { _, index, isChecked ->
+                val app = installedApps[index]
+                if (isChecked) {
+                    addAppToBlock(app)
                 } else {
-                    for (document in result) {
-                        val appName = document.getString("appName") ?: ""
-                        val packageName = document.getString("packageName") ?: ""
-                        if (appName.isNotEmpty() && packageName.isNotEmpty()) {
-                            addBlockedAppView(appName, packageName)
-                        }
-                    }
+                    removeAppFromBlock(app)
                 }
             }
-            .addOnFailureListener { e ->
-                Toast.makeText(this, "Error loading blocked apps: ${e.message}", Toast.LENGTH_SHORT).show()
-            }
+            .setPositiveButton("Done", null)
+            .show()
     }
-    private fun addBlockedAppView(appName: String, packageName: String) {
-        val view = layoutInflater.inflate(R.layout.blocked_app_item, null)
-        view.findViewById<TextView>(R.id.blockedAppName).text = appName
-        view.findViewById<Button>(R.id.unblockButton).setOnClickListener {
-            unblockApp(packageName, appName)
-        }
-        binding.forBlockedApps.addView(view)
-    }
-    private fun unblockApp(packageName: String, appName: String) {
-        db.collection("blocked_apps")
-            .document(packageName)
-            .delete()
-            .addOnSuccessListener {
-                Toast.makeText(this, "$appName unblocked", Toast.LENGTH_SHORT).show()
-                loadBlockdAppps()
-            }
-            .addOnFailureListener { e ->
-                Toast.makeText(this, "Error unblocking: ${e.message}", Toast.LENGTH_SHORT).show()
-            }
-    }
-    private fun blockApp(appInfo: AppInfo) {
-        val blockedApp = hashMapOf(
-            "packageName" to appInfo.packageName,
-            "appName" to appInfo.appName,
-            "blockedAt" to System.currentTimeMillis()
-        )
 
-        db.collection("blocked_apps")
-            .document(appInfo.packageName)
-            .set(blockedApp)
-            .addOnSuccessListener {
-                Toast.makeText(this, "${appInfo.appName} blocked", Toast.LENGTH_SHORT).show()
-                loadBlockdAppps()
-            }
-            .addOnFailureListener { e ->
-                Toast.makeText(this, "Error: ${e.message}", Toast.LENGTH_SHORT).show()
-            }
-    }
     private fun getInstalledApps(): List<AppInfo> {
-        val packageManager = packageManager
-        val intent = Intent(Intent.ACTION_MAIN, null)
-        intent.addCategory(Intent.CATEGORY_LAUNCHER)
-
-        return packageManager.queryIntentActivities(intent, 0)
-            .map { resolveInfo ->
+        return packageManager.getInstalledApplications(PackageManager.GET_META_DATA)
+            .filter { !isSystemApp(it) }
+            .map {
                 AppInfo(
-                    resolveInfo.activityInfo.packageName,
-                    resolveInfo.loadLabel(packageManager).toString()
+                    packageName = it.packageName,
+                    appName = it.loadLabel(packageManager).toString()
                 )
-            }
-            .filter {
-                it.packageName != packageName &&
-                        !isSystemApp(it.packageName)
             }
             .sortedBy { it.appName }
     }
-    private fun isSystemApp(packageName: String): Boolean {
-        return try {
-            val applicationInfo = packageManager.getApplicationInfo(packageName, 0)
-            (applicationInfo.flags and (ApplicationInfo.FLAG_SYSTEM or ApplicationInfo.FLAG_UPDATED_SYSTEM_APP)) != 0
-        } catch (e: Exception) {
-            false
+
+    private fun addAppToBlock(appInfo: AppInfo) {
+        if (selectedApps.add(appInfo)) {
+            addAppToUI(appInfo)
         }
     }
+
+    private fun removeAppFromBlock(appInfo: AppInfo) {
+        if (selectedApps.remove(appInfo)) {
+            updateSelectedAppsUI()
+        }
+    }
+
+    private fun addAppToUI(appInfo: AppInfo) {
+        val appView = layoutInflater.inflate(R.layout.item_selected_app, null)
+        appView.findViewById<android.widget.TextView>(R.id.appNameText).text = appInfo.appName
+        appView.findViewById<android.widget.ImageButton>(R.id.removeButton).setOnClickListener {
+            removeAppFromBlock(appInfo)
+        }
+        binding.selectedAppsContainer.addView(appView)
+    }
+
+    private fun updateSelectedAppsUI() {
+        binding.selectedAppsContainer.removeAllViews()
+        selectedApps.forEach { addAppToUI(it) }
+    }
+
+    private fun startBlocking(durationMillis: Long) {
+        val endTime = System.currentTimeMillis() + durationMillis
+
+        // Block all selected apps in Firestore
+        val batch = db.batch()
+        selectedApps.forEach { app ->
+            val docRef = db.collection("blocked_apps").document(app.packageName)
+            val data = hashMapOf(
+                "packageName" to app.packageName,
+                "appName" to app.appName,
+                "blockedAt" to System.currentTimeMillis(),
+                "unblockTime" to endTime,
+                "isBlocked" to true
+            )
+            batch.set(docRef, data)
+        }
+
+        batch.commit()
+            .addOnSuccessListener {
+                startTimer(durationMillis)
+                disableControls()
+            }
+            .addOnFailureListener { e ->
+                Toast.makeText(this, "Failed to block apps: ${e.message}", Toast.LENGTH_SHORT).show()
+            }
+    }
+
+    private fun startTimer(duration: Long) {
+        countDownTimer = object : CountDownTimer(duration, 1000) {
+            override fun onTick(millisUntilFinished: Long) {
+                timeLeftInMillis = millisUntilFinished
+                updateTimerDisplay(millisUntilFinished)
+            }
+
+            override fun onFinish() {
+                unblockAllApps()
+            }
+        }.start()
+        isTimerRunning = true
+    }
+
+    private fun updateTimerDisplay(millis: Long) {
+        val minutes = TimeUnit.MILLISECONDS.toMinutes(millis)
+        val seconds = TimeUnit.MILLISECONDS.toSeconds(millis) % 60
+        binding.timerText.text = String.format("%02d:%02d", minutes, seconds)
+    }
+
+    private fun unblockAllApps() {
+        val batch = db.batch()
+        selectedApps.forEach { app ->
+            val docRef = db.collection("blocked_apps").document(app.packageName)
+            batch.update(docRef, mapOf(
+                "isBlocked" to false,
+                "unblockTime" to System.currentTimeMillis()
+            ))
+        }
+
+        batch.commit()
+            .addOnSuccessListener {
+                resetUI()
+                Toast.makeText(this, "Apps unblocked", Toast.LENGTH_SHORT).show()
+            }
+            .addOnFailureListener { e ->
+                Toast.makeText(this, "Failed to unblock apps: ${e.message}", Toast.LENGTH_SHORT).show()
+            }
+    }
+
+    private fun disableControls() {
+        binding.selectAppsButton.isEnabled = false
+        binding.startButton.isEnabled = false
+        binding.durationPicker.isEnabled = false
+    }
+
+    private fun resetUI() {
+        binding.selectAppsButton.isEnabled = true
+        binding.startButton.isEnabled = true
+        binding.durationPicker.isEnabled = true
+        binding.timerText.text = "00:00"
+        selectedApps.clear()
+        binding.selectedAppsContainer.removeAllViews()
+        isTimerRunning = false
+    }
+
+    private fun isSystemApp(appInfo: ApplicationInfo): Boolean {
+        return (appInfo.flags and ApplicationInfo.FLAG_SYSTEM) != 0
+    }
+
+    override fun onDestroy() {
+        super.onDestroy()
+        if (isTimerRunning) {
+            countDownTimer.cancel()
+        }
+    }
+
+    data class AppInfo(
+        val packageName: String,
+        val appName: String
+    )
 }
