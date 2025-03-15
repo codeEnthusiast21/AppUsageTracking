@@ -31,12 +31,20 @@ class TimedBlockingActivity : AppCompatActivity() {
     }
 
     private fun initializeViews() {
-        // Initialize duration picker
-        binding.durationPicker.apply {
-            minValue = 1
-            maxValue = 120
+        // Initialize minutes picker
+        binding.minutesPicker.apply {
+            minValue = 0
+            maxValue = 59
+            value = 0
+            wrapSelectorWheel = true
+        }
+
+        // Initialize seconds picker
+        binding.secondsPicker.apply {
+            minValue = 0
+            maxValue = 59
             value = 30
-            wrapSelectorWheel = false
+            wrapSelectorWheel = true
         }
 
         // Set up button click listeners
@@ -49,8 +57,16 @@ class TimedBlockingActivity : AppCompatActivity() {
                 Toast.makeText(this, "Please select apps to block", Toast.LENGTH_SHORT).show()
                 return@setOnClickListener
             }
-            val durationMinutes = binding.durationPicker.value
-            val durationMillis = TimeUnit.MINUTES.toMillis(durationMinutes.toLong())
+
+            val minutes = binding.minutesPicker.value
+            val seconds = binding.secondsPicker.value
+            
+            if (minutes == 0 && seconds == 0) {
+                Toast.makeText(this, "Please set a duration greater than 0", Toast.LENGTH_SHORT).show()
+                return@setOnClickListener
+            }
+
+            val durationMillis = (minutes * 60 * 1000L) + (seconds * 1000L)
             startBlocking(durationMillis)
         }
     }
@@ -184,13 +200,15 @@ class TimedBlockingActivity : AppCompatActivity() {
     private fun disableControls() {
         binding.selectAppsButton.isEnabled = false
         binding.startButton.isEnabled = false
-        binding.durationPicker.isEnabled = false
+        binding.minutesPicker.isEnabled = false
+        binding.secondsPicker.isEnabled = false
     }
 
     private fun resetUI() {
         binding.selectAppsButton.isEnabled = true
         binding.startButton.isEnabled = true
-        binding.durationPicker.isEnabled = true
+        binding.minutesPicker.isEnabled = true
+        binding.secondsPicker.isEnabled = true
         binding.timerText.text = "00:00"
         selectedApps.clear()
         binding.selectedAppsContainer.removeAllViews()
