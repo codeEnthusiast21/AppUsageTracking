@@ -11,6 +11,7 @@ import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import com.example.otherapptimedetection.databinding.ActivityMainBinding
 import com.example.otherapptimedetection.service.UsageAccessibilityService
+import com.google.android.material.animation.AnimationUtils
 import com.google.firebase.firestore.FirebaseFirestore
 
 class MainActivity : AppCompatActivity() {
@@ -22,7 +23,8 @@ class MainActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         binding = ActivityMainBinding.inflate(layoutInflater)
         setContentView(binding.root)
-
+        val animation= android.view.animation.AnimationUtils.loadAnimation(this,R.anim.anim)
+        binding.textView.startAnimation(animation)
         setupPermissionButton()
         binding.blockApp.setOnClickListener{
             startActivity(Intent(this,TimedBlockingActivity::class.java))
