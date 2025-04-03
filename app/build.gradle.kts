@@ -54,5 +54,7 @@ dependencies {
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)
     implementation(libs.lottie)
-    implementation (libs.retrofit)
+    implementation (libs.retrofit2.retrofit)
+    implementation (libs.retrofit2.converter.gson)
+    implementation (libs.kotlinx.coroutines.android)
 }
