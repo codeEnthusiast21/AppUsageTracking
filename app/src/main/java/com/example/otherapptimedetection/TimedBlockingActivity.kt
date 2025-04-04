@@ -1,4 +1,3 @@
-
 package com.example.otherapptimedetection
 
 import android.annotation.SuppressLint
