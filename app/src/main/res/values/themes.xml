@@ -4,6 +4,18 @@
         <!-- Customize your light theme here. -->
         <!-- <item name="colorPrimary">@color/my_light_primary</item> -->
     </style>
+        <style name="NumberPickerStyle">
+            <item name="android:textColorPrimary">#FFFFFF</item>
+            <item name="android:colorControlNormal">#2196F3</item>
+            <item name="android:textSize">20sp</item>
+            <item name="android:solidColor">#2A2A2A</item>
+            <item name="android:background">#2A2A2A</item>
+        </style>
+
+        <style name="CustomNumberPicker" parent="android:Widget.Material.NumberPicker">
+            <item name="android:textColorPrimary">#FFFFFF</item>
+            <item name="android:colorControlNormal">#2196F3</item>
+        </style>
 
     <style name="Theme.OtherAppTimeDetection" parent="Base.Theme.OtherAppTimeDetection" />
 </resources>
