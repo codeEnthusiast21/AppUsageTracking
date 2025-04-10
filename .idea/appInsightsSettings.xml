@@ -8,10 +8,10 @@
             <InsightsFilterSettings>
               <option name="connection">
                 <ConnectionSetting>
-                  <option name="appId" value="PLACEHOLDER" />
-                  <option name="mobileSdkAppId" value="" />
-                  <option name="projectId" value="" />
-                  <option name="projectNumber" value="" />
+                  <option name="appId" value="com.example.otherapptimedetection" />
+                  <option name="mobileSdkAppId" value="1:337402810463:android:d3e259c5d80b605d9fcbea" />
+                  <option name="projectId" value="apptimedetector" />
+                  <option name="projectNumber" value="337402810463" />
                 </ConnectionSetting>
               </option>
               <option name="signal" value="SIGNAL_UNSPECIFIED" />

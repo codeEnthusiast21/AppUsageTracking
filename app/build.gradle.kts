@@ -67,4 +67,5 @@ dependencies {
     implementation(platform(libs.firebase.bom.v3270))
     implementation (libs.google.firebase.auth)
     implementation (libs.play.services.auth)
+    implementation(libs.material.v1110)
 }

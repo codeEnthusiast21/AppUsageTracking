@@ -20,6 +20,7 @@ firebaseDatabase = "21.0.0"
 firebaseFirestoreKtx = "25.1.2"
 firebaseFirestore = "25.1.2"
 lifecycleService = "2.8.7"
+materialVersion = "1.11.0"
 playServicesAuth = "21.3.0"
 retrofit = "2.11.0"
 
@@ -45,6 +46,7 @@ firebase-database = { group = "com.google.firebase", name = "firebase-database",
 firebase-firestore-ktx = { group = "com.google.firebase", name = "firebase-firestore-ktx", version.ref = "firebaseFirestoreKtx" }
 firebase-firestore = { group = "com.google.firebase", name = "firebase-firestore", version.ref = "firebaseFirestore" }
 androidx-lifecycle-service = { group = "androidx.lifecycle", name = "lifecycle-service", version.ref = "lifecycleService" }
+material-v1110 = { module = "com.google.android.material:material", version.ref = "materialVersion" }
 play-services-auth = { module = "com.google.android.gms:play-services-auth", version.ref = "playServicesAuth" }
 retrofit = { module = "com.squareup.retrofit2:retrofit" }
 retrofit2-converter-gson = { module = "com.squareup.retrofit2:converter-gson", version.ref = "converterGson" }

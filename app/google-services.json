@@ -12,7 +12,20 @@
           "package_name": "com.example.otherapptimedetection"
         }
       },
-      "oauth_client": [],
+      "oauth_client": [
+        {
+          "client_id": "337402810463-3dmisvlquec50khh9mihg61jr3jfe2dh.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.example.otherapptimedetection",
+            "certificate_hash": "f3cdf56675ee76bfa910db86fa5f6afee1b336a8"
+          }
+        },
+        {
+          "client_id": "337402810463-a3g3062sv23n6m28ag2aqoe3fenvbqks.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
       "api_key": [
         {
           "current_key": "AIzaSyCeW0faSuz_sYu_u-wh0ymCwgLlu8cqja4"
@@ -20,7 +33,12 @@
       ],
       "services": {
         "appinvite_service": {
-          "other_platform_oauth_client": []
+          "other_platform_oauth_client": [
+            {
+              "client_id": "337402810463-a3g3062sv23n6m28ag2aqoe3fenvbqks.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
         }
       }
     }

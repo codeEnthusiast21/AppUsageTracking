@@ -6,9 +6,8 @@
     android:layout_height="match_parent"
     android:background="@drawable/bg_gradient">
 
-    <!-- Floating Login Card -->
     <com.google.android.material.card.MaterialCardView
-        android:id="@+id/loginCard"
+        android:id="@+id/signupCard"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
         android:layout_margin="24dp"
@@ -39,12 +38,33 @@
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="Welcome Back!"
+                android:text="Create Account"
                 android:textColor="@android:color/white"
                 android:textSize="22sp"
                 android:textStyle="bold"
                 android:layout_gravity="center"
                 android:layout_marginBottom="24dp" />
+
+            <!-- Full Name -->
+            <com.google.android.material.textfield.TextInputLayout
+                style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="16dp"
+                app:boxBackgroundColor="#2A2A2A"
+                app:boxCornerRadiusBottomEnd="12dp"
+                app:boxCornerRadiusBottomStart="12dp"
+                app:boxCornerRadiusTopEnd="12dp"
+                app:boxCornerRadiusTopStart="12dp"
+                app:boxStrokeColor="#4CAF50">
+
+                <com.google.android.material.textfield.TextInputEditText
+                    android:id="@+id/fullNameSignup"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:hint="Full Name"
+                    android:textColor="@android:color/white" />
+            </com.google.android.material.textfield.TextInputLayout>
 
             <!-- Email -->
             <com.google.android.material.textfield.TextInputLayout
@@ -60,7 +80,7 @@
                 app:boxStrokeColor="#4CAF50">
 
                 <com.google.android.material.textfield.TextInputEditText
-                    android:id="@+id/emailLogin"
+                    android:id="@+id/emailSignup"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:hint="Email"
@@ -83,7 +103,7 @@
                 app:boxCornerRadiusBottomEnd="12dp">
 
                 <com.google.android.material.textfield.TextInputEditText
-                    android:id="@+id/passwordLogin"
+                    android:id="@+id/passwordSignup"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:hint="Password"
@@ -91,12 +111,14 @@
                     android:textColor="@android:color/white" />
             </com.google.android.material.textfield.TextInputLayout>
 
-            <!-- Login Button -->
+            <!-- Confirm Password -->
+
+            <!-- Sign Up Button -->
             <com.google.android.material.button.MaterialButton
-                android:id="@+id/loginButton"
+                android:id="@+id/signupButton"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:text="Login"
+                android:text="Sign Up"
                 android:textColor="@android:color/white"
                 android:textSize="16sp"
                 android:backgroundTint="#4CAF50"
@@ -112,12 +134,12 @@
                 android:layout_gravity="center"
                 android:layout_marginVertical="12dp" />
 
-            <!-- Google Button -->
+            <!-- Google Sign Up -->
             <com.google.android.material.button.MaterialButton
-                android:id="@+id/googleButton"
+                android:id="@+id/googleSignupButton"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:text="Continue with Google"
+                android:text="Sign Up with Google"
                 android:textColor="#FFFFFF"
                 android:iconTint="#FFFFFF"
                 android:backgroundTint="#DB4437"
@@ -125,18 +147,17 @@
                 app:cornerRadius="12dp"
                 android:layout_marginBottom="8dp" />
 
-            <!-- Facebook Button -->
-
-            <!-- Register Link -->
+            <!-- Login Link -->
             <TextView
-                android:id="@+id/registerText"
+                android:id="@+id/loginLink"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="Don't have an account? Register"
+                android:text="Already have an account? Login"
                 android:textColor="#AAAAAA"
                 android:textSize="14sp"
                 android:layout_gravity="center"
                 android:layout_marginTop="16dp" />
+
         </LinearLayout>
     </com.google.android.material.card.MaterialCardView>
 </androidx.constraintlayout.widget.ConstraintLayout>

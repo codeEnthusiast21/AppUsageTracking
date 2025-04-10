@@ -27,6 +27,11 @@ class LoginPage : AppCompatActivity() {
             val userPassword = binding.passwordLogin.text.toString()
             signInWithFirebase(userEmail,userPassword)
         }
+        binding.registerText.setOnClickListener(){
+            val intent = Intent(this,SignUp::class.java)
+            startActivity(intent)
+            finish()
+        }
 
     }
     fun signInWithFirebase(userEmail:String, userPassword:String){
