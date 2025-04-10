@@ -1,7 +1,7 @@
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
-    alias(libs.plugins.google.gms.google.services)
+    id("com.google.gms.google-services")
 }
 
 android {
@@ -57,4 +57,14 @@ dependencies {
     implementation (libs.retrofit2.retrofit)
     implementation (libs.retrofit2.converter.gson)
     implementation (libs.kotlinx.coroutines.android)
+    implementation (libs.firebase.database)
+    // Import the BoM for the Firebase platform
+
+    // Declare the dependencies for the desired Firebase products without specifying versions
+    // For example, declare the dependencies for Firebase Authentication and Cloud Firestore
+    implementation (libs.firebase.auth)
+    implementation (libs.google.firebase.firestore)
+    implementation(platform(libs.firebase.bom.v3270))
+    implementation (libs.google.firebase.auth)
+    implementation (libs.play.services.auth)
 }

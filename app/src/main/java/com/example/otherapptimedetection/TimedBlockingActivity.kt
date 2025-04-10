@@ -7,18 +7,14 @@ import android.os.Bundle
 import android.os.CountDownTimer
 import android.os.Handler
 import android.os.Looper
-import android.widget.TextView
 import android.widget.Toast
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import com.example.otherapptimedetection.databinding.ActivityTimedBlockingBinding
-import com.google.android.material.button.MaterialButton
 import com.google.firebase.firestore.FirebaseFirestore
 import retrofit2.Call
 import retrofit2.Response
 import java.util.concurrent.TimeUnit
-import kotlin.collections.get
-import kotlin.text.get
 
 class TimedBlockingActivity : AppCompatActivity() {
 
@@ -84,32 +80,26 @@ class TimedBlockingActivity : AppCompatActivity() {
     }
 
     private fun showAppSelectionDialog() {
-        try {
-            val installedApps = getInstalledApps()
-            val appNames = installedApps.map { it.appName }.toTypedArray()
-            val checkedItems = BooleanArray(appNames.size) { index ->
-                installedApps[index].packageName in selectedApps.map { it.packageName }
-            }
-
-            AlertDialog.Builder(this)
-                .setTitle("Select Apps to Block")
-                .setMultiChoiceItems(appNames, checkedItems) { _, index, isChecked ->
-                    val app = installedApps[index]
-                    if (isChecked) {
-                        addAppToBlock(app)
-                    } else {
-                        removeAppFromBlock(app)
-                    }
-                }
-                .setPositiveButton("Done") { dialog, _ ->
-                    dialog.dismiss()
-                }
-                .show()
-        } catch (e: Exception) {
-            Toast.makeText(this, "Error loading apps", Toast.LENGTH_SHORT).show()
-            e.printStackTrace()
+        val installedApps = getInstalledApps()
+        val appNames = installedApps.map { it.appName }.toTypedArray()
+        val checkedItems = BooleanArray(appNames.size) {
+            installedApps[it].packageName in selectedApps.map { app -> app.packageName }
         }
+
+        AlertDialog.Builder(this)
+            .setTitle("Select Apps to Block")
+            .setMultiChoiceItems(appNames, checkedItems) { _, index, isChecked ->
+                val app = installedApps[index]
+                if (isChecked) {
+                    addAppToBlock(app)
+                } else {
+                    removeAppFromBlock(app)
+                }
+            }
+            .setPositiveButton("Done", null)
+            .show()
     }
+
     private fun getInstalledApps(): List<AppInfo> {
         return packageManager.getInstalledApplications(PackageManager.GET_META_DATA)
             .filter { !isSystemApp(it) }
@@ -135,12 +125,12 @@ class TimedBlockingActivity : AppCompatActivity() {
     }
 
     private fun addAppToUI(appInfo: AppInfo) {
-        val view = layoutInflater.inflate(R.layout.item_selected_app, binding.selectedAppsContainer, false)
-        view.findViewById<TextView>(R.id.appNameText).text = appInfo.appName
-        view.findViewById<MaterialButton>(R.id.removeButton).setOnClickListener {
+        val appView = layoutInflater.inflate(R.layout.item_selected_app, null)
+        appView.findViewById<android.widget.TextView>(R.id.appNameText).text = appInfo.appName
+        appView.findViewById<android.widget.ImageButton>(R.id.removeButton).setOnClickListener {
             removeAppFromBlock(appInfo)
         }
-        binding.selectedAppsContainer.addView(view)
+        binding.selectedAppsContainer.addView(appView)
     }
 
     private fun updateSelectedAppsUI() {
